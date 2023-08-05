@@ -4,56 +4,122 @@ from typing import List, Set, Tuple
 
 class ProcessData:
     """
-    ProcessData class for handling data processing operations.
+    A class to process and analyze data from the Goodreads and bookcrossing datasets.
+
+    This class provides methods to read data from CSV files, merge, filter, and analyze the data to generate a final DataFrame
+    containing relevant information from both datasets. It also offers functionalities to rank user IDs, calculate average book
+    ratings, and save DataFrames to pickle files.
+
+    Attributes:
+        None
 
     Methods:
-    read_goodreads -> Tuple[pd.DataFrame, pd.DataFrame]: Read data from the Goodreads dataset.
-    read_bookcrossings -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Read data from the Bookcrossings dataset.
-    filter_rows_by_column_value -> pd.DataFrame: Filter rows in a DataFrame based on a specific column value.
-    get_common_elements -> Set[str]: Get common elements between two DataFrames based on specified columns.
-    filter_dataframes -> Tuple[pd.DataFrame, pd.DataFrame]: Filter two DataFrames based on their common elements in a specified column.
-    avg_ratings -> pd.DataFrame: Calculate the average ratings for a DataFrame.
-    save_dataframe_to_pickle -> None: Save a DataFrame to a .pkl file.
-    get_final_dataframe -> pd.DataFrame: Get the final processed DataFrame.
+        read_goodreads(data_directory='data/raw/goodreads/') -> Tuple[pd.DataFrame, pd.DataFrame]:
+            Read the Goodreads data files and return two DataFrames.
+
+        rank_gr_userid(df_gr_books: pd.DataFrame, df_gr_ratings: pd.DataFrame) -> pd.DataFrame:
+            Rank the 'user_id_gr' column in the merged DataFrame 'df_gr' to consecutive integers.
+
+        read_bookcrossing(data_directory='data/raw/bookcrossing/'):
+            Read the bookcrossing data files and return three DataFrames.
+
+        avg_bx_ratings(df_bx_books: pd.DataFrame, df_bx_ratings: pd.DataFrame, df_bx_users: pd.DataFrame) -> pd.DataFrame:
+            Calculate the average book rating for each ISBN in the merged DataFrame 'df_bx'.
+
+        filter_rows_by_column_value(data: pd.DataFrame, column_name: str, allowed_values: Set[str]) -> pd.DataFrame:
+            Filter rows of the DataFrame based on the allowed values in the specified column.
+
+        get_common_elements(dataframes: List[pd.DataFrame], column_names: List[str]) -> Set[str]:
+            Get the common elements between two DataFrames in the specified columns.
+
+        filter_dataframes(dataframes: List[pd.DataFrame], column_names: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+            Filter two DataFrames based on the common elements in the specified columns.
+
+        save_dataframe_to_pickle(df: pd.DataFrame, target_dir: str, file_name: str) -> None:
+            Save DataFrame to a .pkl file in the specified directory.
+
+        get_final_dataframe() -> pd.DataFrame:
+            Generate the final DataFrame by merging, filtering, and sorting the data.
+
+    Example:
+        processor = ProcessData()
+        final_dataframe = processor.get_final_dataframe()
     """
 
-    def __init__(self) -> None:
-        pass
-
     def read_goodreads(self, data_directory='data/raw/goodreads/') -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Read data from the Goodreads dataset.
-
-        Parameters:
-            data_directory (str): Directory path where the Goodreads dataset is located.
-
-        Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]: Two DataFrames containing ratings and book information from Goodreads.
         """
-        df_gr_ratings = pd.read_csv(f'{data_directory}books.csv')
-        df_gr_books = pd.read_csv(f'{data_directory}ratings.csv')
-        return df_gr_ratings, df_gr_books
-
-    def read_bookcrossings(self, data_directory='data/raw/bookcrossing/') -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """Read data from the Bookcrossings dataset.
+        Read the Goodreads data files and return two DataFrames.
 
         Parameters:
-            data_directory (str): Directory path where the Bookcrossings dataset is located.
+            data_directory (str): Path to the directory containing the Goodreads data files.
 
         Returns:
-            Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Three DataFrames containing ratings, book, and user information from Bookcrossings.
+            Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing two DataFrames: df_gr_ratings and df_gr_books.
+        """
+        df_gr_books = pd.read_csv(f'{data_directory}books.csv')
+        df_gr_ratings = pd.read_csv(f'{data_directory}ratings.csv')
+        return df_gr_ratings, df_gr_books
+    
+    def rank_gr_userid(self, df_gr_books: pd.DataFrame, df_gr_ratings: pd.DataFrame) -> pd.DataFrame:
+        """
+        Rank the 'user_id_gr' column in the merged DataFrame 'df_gr' to consecutive integers.
+
+        Parameters:
+            df_gr_books (pd.DataFrame): DataFrame containing Goodreads book data.
+            df_gr_ratings (pd.DataFrame): DataFrame containing Goodreads ratings data.
+
+        Returns:
+            pd.DataFrame: DataFrame with 'user_id_gr' column ranked by consecutive integers.
+        """
+        df_gr = pd.merge(df_gr_ratings, df_gr_books, how='inner', on='book_id')
+        df_gr = df_gr.add_suffix('_gr')
+        df_gr['user_id_gr'] = df_gr['user_id_gr'].rank(method='dense').astype(int)
+        df_gr = df_gr.sort_values(by='user_id_gr')
+        df_gr.reset_index(drop=True, inplace=True)
+        return df_gr
+    
+    def read_bookcrossing(self, data_directory='data/raw/bookcrossing/'):
+        """
+        Read the bookcrossing data files and return three DataFrames.
+
+        Parameters:
+            data_directory (str): Path to the directory containing the bookcrossing data files.
+
+        Returns:
+            Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: A tuple containing three DataFrames: df_bx_ratings, df_bx_books, and df_bx_users.
         """
         df_bx_ratings = pd.read_csv(f'{data_directory}BX-Book-Ratings.csv', encoding='unicode_escape', on_bad_lines='skip', sep=';', dtype='unicode')
         df_bx_books = pd.read_csv(f'{data_directory}BX-Books.csv', encoding='unicode_escape', on_bad_lines='skip', sep=';', dtype='unicode')  
         df_bx_users = pd.read_csv(f'{data_directory}BX-Users.csv', encoding='unicode_escape', on_bad_lines='skip', sep=';', dtype='unicode')  
         return df_bx_ratings, df_bx_books, df_bx_users
     
+    def avg_bx_ratings(self, df_bx_books: pd.DataFrame, df_bx_ratings: pd.DataFrame, df_bx_users: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate the average book rating for each ISBN in the merged DataFrame 'df_bx'.
+
+        Parameters:
+            df_bx_books (pd.DataFrame): DataFrame containing bookcrossing book data.
+            df_bx_ratings (pd.DataFrame): DataFrame containing bookcrossing ratings data.
+            df_bx_users (pd.DataFrame): DataFrame containing bookcrossing user data.
+
+        Returns:
+            pd.DataFrame: DataFrame with average book ratings for each ISBN.
+        """
+        df_bx = pd.merge(df_bx_books, df_bx_ratings, how='inner', on='ISBN')
+        df_bx = pd.merge(df_bx, df_bx_users, how='inner', on='User-ID')
+        df_bx = df_bx.add_suffix('_bx')
+        df_bx['Book-Rating_bx'] = df_bx['Book-Rating_bx'].astype(int)
+        df_bx = df_bx.groupby("ISBN_bx")["Book-Rating_bx"].mean().reset_index()
+        return df_bx
+    
     def filter_rows_by_column_value(self, data: pd.DataFrame, column_name: str, allowed_values: Set[str]) -> pd.DataFrame:
-        """Filter rows in a DataFrame based on a specific column value.
+        """
+        Filter rows of the DataFrame based on the allowed values in the specified column.
 
         Parameters:
             data (pd.DataFrame): DataFrame to be filtered.
-            column_name (str): Name of the column to filter on.
-            allowed_values (Set[str]): Set of allowed values for the specified column.
+            column_name (str): Column name to be used for filtering.
+            allowed_values (Set[str]): Set of allowed values in the specified column.
 
         Returns:
             pd.DataFrame: Filtered DataFrame.
@@ -62,57 +128,43 @@ class ProcessData:
         return filtered_data
 
     def get_common_elements(self, dataframes: List[pd.DataFrame], column_names: List[str]) -> Set[str]:
-        """Get common elements between two DataFrames based on specified columns.
+        """
+        Get the common elements between two DataFrames in the specified columns.
 
         Parameters:
-            dataframes (List[pd.DataFrame]): List of two DataFrames to compare.
-            column_names (List[str]): List of column names from each DataFrame to use for comparison.
+            dataframes (List[pd.DataFrame]): List of DataFrames.
+            column_names (List[str]): List of column names to check for common elements.
 
         Returns:
-            Set[str]: Set of common elements between the two DataFrames based on the specified columns.
+            Set[str]: Set of common elements in the specified columns.
         """
         set0 = set(dataframes[0][column_names[0]])
         set1 = set(dataframes[1][column_names[1]])
         return set0.intersection(set1)
 
     def filter_dataframes(self, dataframes: List[pd.DataFrame], column_names: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Filter two DataFrames based on their common elements in a specified column.
+        """
+        Filter two DataFrames based on the common elements in the specified columns.
 
         Parameters:
-            dataframes (List[pd.DataFrame]): List of two DataFrames to filter.
-            column_names (List[str]): List of column names from each DataFrame to use for filtering.
+            dataframes (List[pd.DataFrame]): List of DataFrames to be filtered.
+            column_names (List[str]): List of column names to check for common elements.
 
         Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]: Filtered DataFrames for both inputs.
+            Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing two filtered DataFrames.
         """
         intersection_set = self.get_common_elements(dataframes=dataframes, column_names=column_names)
-        bx_filtered = self.filter_rows_by_column_value(dataframes[0], 'ISBN', intersection_set)
-        gr_filtered = self.filter_rows_by_column_value(dataframes[1], 'isbn', intersection_set)
+        bx_filtered = self.filter_rows_by_column_value(dataframes[0], column_names[0], intersection_set)
+        gr_filtered = self.filter_rows_by_column_value(dataframes[1], column_names[1], intersection_set)
         return bx_filtered, gr_filtered
-    
-    def avg_ratings(self, bx_filtered: pd.DataFrame, df_bx_ratings: pd.DataFrame) -> pd.DataFrame:
-        """Calculate the average ratings for a DataFrame.
-
-        Parameters:
-            bx_filtered (pd.DataFrame): DataFrame containing filtered book information.
-            df_bx_ratings (pd.DataFrame): DataFrame containing book ratings.
-
-        Returns:
-            pd.DataFrame: DataFrame with the calculated average ratings.
-        """
-        merged_df = pd.merge(bx_filtered, df_bx_ratings, on="ISBN", how="inner")
-        merged_df['Book-Rating'] = merged_df['Book-Rating'].astype(int)
-        merged_df = merged_df[['ISBN', 'Book-Rating']]
-        merged_df = merged_df.groupby("ISBN")["Book-Rating"].mean().reset_index()
-
-        return merged_df
 
     def save_dataframe_to_pickle(self, df: pd.DataFrame, target_dir: str, file_name: str) -> None:
-        """Save a DataFrame to a .pkl file.
+        """
+        Save DataFrame to a .pkl file in the specified directory.
 
         Parameters:
             df (pd.DataFrame): DataFrame to be saved.
-            target_dir (str): Target directory path where the DataFrame will be saved.
+            target_dir (str): Target directory path to save the file.
             file_name (str): Name of the .pkl file.
 
         Returns:
@@ -131,38 +183,44 @@ class ProcessData:
         print(f"DataFrame saved to {file_path}")
 
     def get_final_dataframe(self) -> pd.DataFrame:
-        """Get the final processed DataFrame.
+        """
+        Generate the final DataFrame by merging, filtering, and sorting the data.
 
         Returns:
-            pd.DataFrame: Final processed DataFrame.
+            pd.DataFrame: Final merged and filtered DataFrame.
         """
         df_gr_ratings, df_gr_books = self.read_goodreads()
-        df_bx_ratings, df_bx_books, df_bx_users = self.read_bookcrossings()
-        bx_filtered, gr_filtered = self.filter_dataframes(dataframes=[df_bx_books, df_gr_ratings], column_names=['ISBN', 'isbn'])
+        df_gr = self.rank_gr_userid(df_gr_books, df_gr_ratings)
 
-        bx_merged = self.avg_ratings(bx_filtered, df_bx_ratings)
-        final_df = pd.merge(gr_filtered, bx_merged, left_on="isbn", right_on="ISBN", how="inner")
-        
-        self.save_dataframe_to_pickle(final_df[['ISBN', 'authors', 'title', 'original_publication_year']],
+        df_bx_ratings, df_bx_books, df_bx_users = self.read_bookcrossing()
+        df_bx = self.avg_bx_ratings(df_bx_books, df_bx_ratings, df_bx_users)
+
+        gr_filtered, bx_filtered = self.filter_dataframes(dataframes=[df_gr, df_bx], column_names=['isbn_gr', 'ISBN_bx'])
+
+        df_final = pd.merge(gr_filtered, bx_filtered, how='inner', left_on='isbn_gr', right_on='ISBN_bx')  
+        df_final.sort_values('user_id_gr', inplace=True) 
+
+        self.save_dataframe_to_pickle(df_final[['isbn_gr', 'authors_gr', 'title_gr', 'original_publication_year_gr']],
                                       target_dir='data/processed/',
-                                      file_name='reference_dataframe.pkl'
+                                      file_name='book_reference_dataframe.pkl'
                                       )
 
         columns_to_drop = [
-            'authors',
-            'best_book_id',
-            'book_id',
-            'goodreads_book_id',
-            'image_url',
-            'isbn13',
-            'ISBN',
-            'language_code',
-            'original_title',
-            'small_image_url',
-            'title',
-            'work_id'
+            'book_id_gr',
+            'goodreads_book_id_gr',
+            'best_book_id_gr',
+            'work_id_gr',
+            'isbn13_gr',
+            'authors_gr',
+            'original_publication_year_gr',
+            'original_title_gr',
+            'title_gr',
+            'language_code_gr',
+            'image_url_gr',
+            'small_image_url_gr',
+            'ISBN_bx'
         ]
 
-        final_df.drop(columns=columns_to_drop, inplace=True)
+        df_final.drop(columns=columns_to_drop, inplace=True)
         
-        return final_df
+        return df_final
