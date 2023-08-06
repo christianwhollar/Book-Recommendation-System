@@ -42,8 +42,7 @@ class ProcessData:
             Generate the final DataFrame by merging, filtering, and sorting the data.
 
     Example:
-        processor = ProcessData()
-        final_dataframe = processor.get_final_dataframe()
+        
     """
 
     def read_goodreads(self, data_directory='data/raw/goodreads/') -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -200,27 +199,16 @@ class ProcessData:
         df_final = pd.merge(gr_filtered, bx_filtered, how='inner', left_on='isbn_gr', right_on='ISBN_bx')  
         df_final.sort_values('user_id_gr', inplace=True) 
 
+        df_final.rename(columns={'Book-Rating_bx':'rating_bx'}, inplace=True)
+
         self.save_dataframe_to_pickle(df_final[['isbn_gr', 'authors_gr', 'title_gr', 'original_publication_year_gr']],
                                       target_dir='data/processed/',
                                       file_name='book_reference_dataframe.pkl'
                                       )
 
-        columns_to_drop = [
-            'book_id_gr',
-            'goodreads_book_id_gr',
-            'best_book_id_gr',
-            'work_id_gr',
-            'isbn13_gr',
-            'authors_gr',
-            'original_publication_year_gr',
-            'original_title_gr',
-            'title_gr',
-            'language_code_gr',
-            'image_url_gr',
-            'small_image_url_gr',
-            'ISBN_bx'
-        ]
-
-        df_final.drop(columns=columns_to_drop, inplace=True)
-        
+        self.save_dataframe_to_pickle(df_final[['user_id_gr', 'isbn_gr','rating_bx','rating_gr']],
+                                      target_dir='data/processed/',
+                                      file_name='final_dataframe.pkl'
+                                      )
+    
         return df_final
