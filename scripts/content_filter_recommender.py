@@ -7,6 +7,7 @@ import requests
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, accuracy_score, recall_score, precision_score
 import pickle
+import json
 
 class ContentFilterRecommender:
     """
@@ -48,6 +49,9 @@ class ContentFilterRecommender:
 
         get_eval_metrics(self) -> tuple[float, float, float, float]
             Calculate evaluation metrics (MSE, accuracy, recall, precision) for the content-based recommender.
+        
+        save_metrics_to_json(self, mse: float = 1, accuracy: float = 1, recall: float = 1, precision: float = 1, filename: str = "evals/content_filter_eval.json")
+            Save evaluation metrics to a JSON file.
     """
 
     def __init__(self, df: pd.DataFrame):
@@ -232,6 +236,33 @@ class ContentFilterRecommender:
         # Calculate MSE using valid predictions
         mse = mean_squared_error(y_val[valid_indices], preds[valid_indices])
         accuracy = accuracy_score(y_val[valid_indices], preds[valid_indices])
-        recall = recall_score(y_val[valid_indices], preds[valid_indices], average='micro')
-        precision = precision_score(y_val[valid_indices], preds[valid_indices], average='micro')
+        recall = recall_score(y_val[valid_indices], preds[valid_indices], average='macro')
+        precision = precision_score(y_val[valid_indices], preds[valid_indices], average='macro')
         return mse, accuracy, recall, precision
+    
+    def save_metrics_to_json(self, mse: float = 1, accuracy: float = 1, recall: float = 1, precision: float = 1, filename: str = "evals/content_filter_eval.json"):
+        """
+        Save evaluation metrics to a JSON file.
+
+        Args:
+            mse (float, optional): Mean Squared Error value. Default is 1.
+            accuracy (float, optional): Accuracy value. Default is 1.
+            recall (float, optional): Recall value. Default is 1.
+            precision (float, optional): Precision value. Default is 1.
+            filename (str, optional): Name of the JSON file to save. Default is "metrics.json".
+
+        Returns:
+            None
+        """
+        metrics_data = {
+            "model": "hybrid filter",
+            "metrics": {
+                "mse": mse,
+                "accuracy": accuracy,
+                "recall": recall,
+                "precision": precision
+            }
+        }
+
+        with open(filename, 'w') as json_file:
+            json.dump(metrics_data, json_file, indent=4)

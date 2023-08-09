@@ -6,6 +6,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, accuracy_score, recall_score, precision_score
+import json
 
 class HybridFilterRecommender():
     """
@@ -44,7 +45,9 @@ class HybridFilterRecommender():
 
         eval_model(self, model_dir: str = 'models/hybrid_recommender.pkl') -> tuple[float, float, float, float]
             Evaluate the model's performance using mean squared error (MSE), accuracy, recall, and precision metrics.
-            ...
+        
+        save_metrics_to_json(self, mse: float = 1, accuracy: float = 1, recall: float = 1, precision: float = 1, filename: str = "evals/hybrid_filter_eval.json")
+            Save evaluation metrics to a JSON file.
     """
 
     def __init__(self, input_df: pd.DataFrame):
@@ -275,9 +278,35 @@ class HybridFilterRecommender():
             preds.append(pred)
 
         pred_list = [int(tensor.item()) for tensor in preds]
-
         mse = mean_squared_error(y_val, pred_list)
         accuracy = accuracy_score(y_val, pred_list)
         recall = recall_score(y_val, pred_list, average = 'micro')
         precision = precision_score(y_val, pred_list, average = 'micro')
         return mse, accuracy, recall, precision
+    
+    def save_metrics_to_json(self, mse: float = 1, accuracy: float = 1, recall: float = 1, precision: float = 1, filename: str = "evals/hybrid_filter_json"):
+        """
+        Save evaluation metrics to a JSON file.
+
+        Args:
+            mse (float): Mean Squared Error value.
+            accuracy (float): Accuracy value.
+            recall (float): Recall value.
+            precision (float): Precision value.
+            filename (str): Name of the JSON file to save.
+
+        Returns:
+            None
+        """
+        metrics_data = {
+            "model": "hybrid filter",
+            "metrics": {
+                "mse": mse,
+                "accuracy": accuracy,
+                "recall": recall,
+                "precision": precision
+            }
+        }
+
+        with open(filename, 'w') as json_file:
+            json.dump(metrics_data, json_file, indent=4)

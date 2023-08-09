@@ -24,5 +24,5 @@ if __name__ == '__main__':
     hfr.eval_model()
 
     # Hybrid Content Filter
-    cfr = ContentFilterRecommender()
+    cfr = ContentFilterRecommender(df_final)
     cfr.get_eval_metrics()

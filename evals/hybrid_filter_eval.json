@@ -3,8 +3,8 @@
     "metrics": {
       "mse": 1.95,
       "accuracy": 0.21,
-      "recall": 0.21,
-      "precision": 0.21
+      "recall": 0.22,
+      "precision": 0.08
     }
   }
   
