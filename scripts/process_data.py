@@ -44,7 +44,9 @@ class ProcessData:
     Example:
         
     """
-
+    def __init__(self):
+        pass
+    
     def read_goodreads(self, data_directory='data/raw/goodreads/') -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Read the Goodreads data files and return two DataFrames.

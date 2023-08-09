@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, accuracy_score, recall_score, precision_score
 
 class HybridFilterRecommender():
     """
@@ -14,28 +16,44 @@ class HybridFilterRecommender():
 
     Methods:
         __init__(self, input_df: pd.DataFrame)
-            Initialize the HybridFilteringRecommender class.
+            Initialize the HybridFilterRecommender class.
 
         map_columns_to_int(self, df: pd.DataFrame, column_name: str = 'isbn_gr', mapping_dir: str = None) -> pd.DataFrame
+            # Add your additional information here
             Map the values in a specified column of the DataFrame to integer values.
 
         process_df(self) -> pd.DataFrame
+            # Add your additional information here
             Process the input DataFrame by mapping relevant columns to integer values.
 
         predict_rating(self, model: nn.Module, userid: int, isbn: int, bxrating: float, device: torch.device) -> torch.Tensor
+            # Add your additional information here
             Predict the rating for a given user, item, and book rating.
 
         generate_recommendations(self, df: pd.DataFrame, model: nn.Module, userid: int, n_recs: int, device: torch.device) -> np.ndarray
+            # Add your additional information here
             Generate book recommendations for a given user.
 
         load_isbn_map(self) -> dict[int, int]
+            # Add your additional information here
             Load the mapping dictionary for ISBN values.
 
         load_isbn_df(self) -> pd.DataFrame
+            # Add your additional information here
             Load the DataFrame containing book reference information.
 
+        get_best_user(self, selected_books:list = ["Atonement"]) -> int
+            # Add your additional information here
+            Get the user who read most of the selected books.
+
         get_default_books(self, selected_books:list = ["Atonement"], model_dir: str = 'models/hybrid_recommender.pkl') -> tuple[list[str], list[str], list[str]]
+            # Add your additional information here
             Get default book recommendations using the trained hybrid recommendation model.
+
+        eval_model(self, model_dir: str = 'models/hybrid_recommender.pkl') -> tuple[float, float, float, float]
+            # Add your additional information here
+            Evaluate the model's performance using mean squared error (MSE), accuracy, recall, and precision metrics.
+            ...
     """
 
     def __init__(self, input_df: pd.DataFrame):
@@ -158,7 +176,16 @@ class HybridFilterRecommender():
         isbn_ref = pd.read_pickle(isbn_ref_path)
         return isbn_ref
     
-    def get_best_user(self, selected_books:list = ["Atonement"]):
+    def get_best_user(self, selected_books:list = ["Atonement"]) -> int:
+        """
+        Get the user who read most of the selected books.
+
+        Args:
+            selected_books (list, optional): List of selected book titles.
+
+        Returns:
+            int: User ID who read most of the selected books.
+        """
         df = self.process_df()
         isbn_map = self.load_isbn_map()
         isbn_map = {value: key for key, value in isbn_map.items()}
@@ -228,3 +255,38 @@ class HybridFilterRecommender():
             years.append(ref_row['original_publication_year_gr'])
         
         return authors, titles, years
+
+    def eval_model(self, model_dir: str = 'models/hybrid_recommender.pkl') -> tuple[float, float, float, float]:
+
+        """
+        Evaluate the model's performance using mean squared error (MSE), accuracy, recall, and precision metrics.
+
+        Args:
+            model_dir (str, optional): Directory where the trained model is saved. Default is 'models/hybrid_recommender.pkl'.
+
+        Returns:
+            tuple[float, float, float, float]: Tuple containing MSE, accuracy, recall, and precision metrics.
+        """
+
+        df = self.process_df()
+        df.drop(columns = ['genres'], inplace = True)
+        df = df.astype(int)
+        X = df.loc[:, ['user_id_gr', 'isbn_gr','rating_bx']]
+        y = df.loc[:, ['rating_gr']]
+        X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=0, test_size=0.2)
+        
+        model = torch.load(model_dir)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        preds = []
+        for userid, isbn, bxrating in tqdm(zip(X_val['user_id_gr'],X_val['isbn_gr'],X_val['rating_bx']), total=len(X_val)):
+            pred = self.predict_rating(model = model, userid = userid, isbn = isbn, bxrating = bxrating, device = device)
+            preds.append(pred)
+
+        pred_list = [int(tensor.item()) for tensor in preds]
+
+        mse = mean_squared_error(y_val, pred_list)
+        accuracy = accuracy_score(y_val, pred_list)
+        recall = recall_score(y_val, pred_list, average = 'micro')
+        precision = precision_score(y_val, pred_list, average = 'micro')
+        return mse, accuracy, recall, precision
