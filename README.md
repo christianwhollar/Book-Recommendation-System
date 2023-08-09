@@ -46,6 +46,9 @@ To just run the Streamlit App, do the following:
 ├── data                               <- directory for project data
     ├── raw                            <- directory to store raw csv downloads
     ├── processed                      <- directory to store processed dataframes
+├── evals                              <- directory for project data
+    ├── content_filter_eval.json       <- json file for content filter eval
+    ├── hybrid_filter_eval.json        <- json file for hybrid filter eval
 ├── .gitignore                         <- git ignore file
 ```
 

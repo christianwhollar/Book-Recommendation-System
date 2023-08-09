@@ -1,0 +1,10 @@
+{
+    "model": "content filter",
+    "metrics": {
+      "mse": 1.55,
+      "accuracy": 0.38,
+      "recall": 0.38,
+      "precision": 0.38
+    }
+  }
+  
