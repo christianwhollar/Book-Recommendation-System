@@ -19,39 +19,30 @@ class HybridFilterRecommender():
             Initialize the HybridFilterRecommender class.
 
         map_columns_to_int(self, df: pd.DataFrame, column_name: str = 'isbn_gr', mapping_dir: str = None) -> pd.DataFrame
-            # Add your additional information here
             Map the values in a specified column of the DataFrame to integer values.
 
         process_df(self) -> pd.DataFrame
-            # Add your additional information here
             Process the input DataFrame by mapping relevant columns to integer values.
 
         predict_rating(self, model: nn.Module, userid: int, isbn: int, bxrating: float, device: torch.device) -> torch.Tensor
-            # Add your additional information here
             Predict the rating for a given user, item, and book rating.
 
         generate_recommendations(self, df: pd.DataFrame, model: nn.Module, userid: int, n_recs: int, device: torch.device) -> np.ndarray
-            # Add your additional information here
             Generate book recommendations for a given user.
 
         load_isbn_map(self) -> dict[int, int]
-            # Add your additional information here
             Load the mapping dictionary for ISBN values.
 
         load_isbn_df(self) -> pd.DataFrame
-            # Add your additional information here
             Load the DataFrame containing book reference information.
 
         get_best_user(self, selected_books:list = ["Atonement"]) -> int
-            # Add your additional information here
             Get the user who read most of the selected books.
 
         get_default_books(self, selected_books:list = ["Atonement"], model_dir: str = 'models/hybrid_recommender.pkl') -> tuple[list[str], list[str], list[str]]
-            # Add your additional information here
             Get default book recommendations using the trained hybrid recommendation model.
 
         eval_model(self, model_dir: str = 'models/hybrid_recommender.pkl') -> tuple[float, float, float, float]
-            # Add your additional information here
             Evaluate the model's performance using mean squared error (MSE), accuracy, recall, and precision metrics.
             ...
     """
