@@ -1,2 +1,3 @@
-/data/raw/
+/data/raw/bookcrossing/*.csv
+/data/raw/goodreads/*.csv
 /models/
